@@ -1,0 +1,3 @@
+.bill-result-menu:not(:last-child) {
+  padding-bottom: 2px !important;
+}
