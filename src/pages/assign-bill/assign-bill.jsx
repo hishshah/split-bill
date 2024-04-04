@@ -6,36 +6,17 @@ import {
   GridRow,
   List,
 } from "semantic-ui-react";
+import { useNavigate } from "react-router-dom";
 import "./assign-bill.css";
 import MenuItem from "./components/menu-item";
 import SummaryItem from "./components/summary-item";
+import AssignBillUtils from "./utils";
 
 const AssignBill = () => {
   const [selectedAssignee, setSelectedAssignee] = useState(null);
   const [assignees, setAssignees] = useState([]);
-  const [menuItems, setMenuItems] = useState([
-    {
-      id: 1,
-      name: "Menu 1",
-      quantity: 1,
-      price: 10000,
-      assignees: [],
-    },
-    {
-      id: 2,
-      name: "Menu 2",
-      quantity: 2,
-      price: 20000,
-      assignees: [],
-    },
-    {
-      id: 3,
-      name: "Menu 3",
-      quantity: 3,
-      price: 300000,
-      assignees: [],
-    },
-  ]);
+  const defaultMenuItems = JSON.parse(localStorage.getItem('menuItems')) || []
+  const [menuItems, setMenuItems] = useState(defaultMenuItems);
   const [colors, setColors] = useState([
     "red",
     "olive",
@@ -49,7 +30,21 @@ const AssignBill = () => {
     "blue",
     "grey",
   ]);
-  const maxAssignee = 11
+  const maxAssignee = 11;
+  const summary = JSON.parse(localStorage.getItem('summary')) || {
+    subtotal: 0,
+    tax: 0,
+    taxPercentage: 0,
+    service: 0,
+    servicePercentage: 0,
+    discount: 0,
+    discountPercentage: 0,
+    others: 0,
+    othersPercentage: 0,
+    total: 0,
+  }
+  const { subtotal, tax, service, discount, others, total } = summary;
+  const navigate = useNavigate()
 
   const toggleMenuAssignee = (id, isSelected) => {
     if (!selectedAssignee) return alert("Add/select assignee first");
@@ -61,7 +56,7 @@ const AssignBill = () => {
             (ass) => ass.name !== selectedAssignee?.name
           );
         } else {
-          updatedAssignee.push(selectedAssignee);
+          updatedAssignee.push({...selectedAssignee});
         }
 
         return { ...item, assignees: updatedAssignee };
@@ -82,13 +77,18 @@ const AssignBill = () => {
       const color = colors.shift();
       setColors(colors);
 
+      const newAssignee = {
+        name,
+        color,
+        quantity: 1
+      }
       setAssignees([
         ...assignees,
-        {
-          name,
-          color,
-        },
+        newAssignee
       ]);
+      if (!selectedAssignee) {
+        setSelectedAssignee(newAssignee)
+      }
     }
   };
 
@@ -112,13 +112,40 @@ const AssignBill = () => {
     setColors([selectedAssignee.color, ...colors]);
   };
 
-  const { subtotal, tax, service, discount, others, total } = {
-    subtotal: 1000,
-    tax: 2000,
-    service: 3000,
-    discount: -3000,
-    others: -1000,
-    total: 2000,
+  const calculateBill = () => {
+    const utils = new AssignBillUtils(menuItems, summary);
+    const result = assignees.map(assignee => {
+      const menus = utils.getItemsByAssignee(assignee.name)
+      const additionals = utils.getAdditionals(menus)
+      const total = utils.calculateTotal(menus, additionals)
+      return {
+        assignee: assignee.name,
+        menus,
+        total,
+        additionals
+      }
+    })
+
+    localStorage.setItem('result', JSON.stringify(result))
+    navigate('/result')
+  }
+
+  const updateAssigneeQty = (id, assignee, quantity) => {
+    const updatedMenuItems = menuItems.map((item) => {
+      if (item.id === id) {
+        const updatedAssignee = item.assignees.map(ass => {
+          if (ass.name === assignee) {
+            ass.quantity = Math.min(quantity, item.quantity)
+          }
+          return ass
+        })
+
+        return { ...item, assignees: updatedAssignee };
+      }
+      return item;
+    });
+
+    setMenuItems(updatedMenuItems);
   };
 
   return (
@@ -128,10 +155,11 @@ const AssignBill = () => {
 
         return (
           <Button
+            key={assignee.name}
             icon
             color={assignee.color}
             onClick={() => setSelectedAssignee(assignee)}
-            className="mr-2"
+            className="assignee mr-2"
             data-selected={isSelected}
             size="tiny"
             compact
@@ -158,6 +186,7 @@ const AssignBill = () => {
               item={item}
               isSelected={isSelected}
               handleClick={toggleMenuAssignee}
+              updateAssigneeQty={updateAssigneeQty}
             />
           );
         })}
@@ -182,7 +211,7 @@ const AssignBill = () => {
       <Grid>
         <GridRow>
           <GridColumn>
-            <Button fluid color="green">
+            <Button fluid color="green" onClick={() => calculateBill()} disabled={assignees.length === 0}>
               Split Bill
             </Button>
           </GridColumn>

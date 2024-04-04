@@ -9,9 +9,19 @@ import {
   ListHeader,
   ListItem,
 } from "semantic-ui-react";
-import './menu-item.css'
+import "./menu-item.css";
 
-const MenuItem = ({ item, isSelected, handleClick }) => {
+const MenuItem = ({ item, isSelected, handleClick, updateAssigneeQty }) => {
+  const editAssignee = (e, assignee) => {
+    e.stopPropagation()
+
+    const quantity = Number(prompt("Quantity:", assignee.quantity));
+
+    if (quantity) {
+      updateAssigneeQty(item.id, assignee.name, quantity)
+    }
+  };
+
   return (
     <div
       className="menu-item"
@@ -25,10 +35,22 @@ const MenuItem = ({ item, isSelected, handleClick }) => {
             <Grid>
               <GridRow verticalAlign="middle">
                 <GridColumn width={4}>x {item.quantity}</GridColumn>
-                <GridColumn width={4}>{Number(item.price).toLocaleString()}</GridColumn>
-                <GridColumn width={8}>{item.assignees.map(assignee => (
-                  <Label key={assignee.name} circular color={assignee.color} />
-                ))}</GridColumn>
+                <GridColumn width={4}>
+                  {Number(item.price).toLocaleString()}
+                </GridColumn>
+                <GridColumn width={8}>
+                  {item.assignees.map((assignee) => (
+                    <Label
+                      as="button"
+                      key={`${assignee.name}-${assignee.quantity}-${new Date().getTime()}`}
+                      circular
+                      color={assignee.color}
+                      content={assignee.quantity}
+                      className="ml-0 mr-1 mb-1"
+                      onClick={(e) => editAssignee(e, assignee)}
+                    />
+                  ))}
+                </GridColumn>
               </GridRow>
             </Grid>
           </ListDescription>

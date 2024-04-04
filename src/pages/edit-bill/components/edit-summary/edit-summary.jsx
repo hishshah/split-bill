@@ -1,15 +1,21 @@
 import React, { useState } from "react";
 import { Divider, Grid, GridColumn, GridRow, Input } from "semantic-ui-react";
 
-const Summary = ({ subtotal = 0 }) => {
-  const [tax, setTax] = useState(0);
-  const [service, setService] = useState(0);
-  const [discount, setDiscount] = useState(0);
-  const [total, setTotal] = useState(0);
+const Summary = ({ defaultData, subtotal = 0, callback }) => {
+  const [tax, setTax] = useState(defaultData?.tax || 0);
+  const [service, setService] = useState(defaultData?.service || 0);
+  const [discount, setDiscount] = useState(defaultData?.discount || 0);
+  const [total, setTotal] = useState(defaultData?.total || 0);
 
-  const onBlur = () => {};
 
-  const others = Number(total) - (subtotal + Number(tax) + Number(service) - Number(discount))
+  const others = Number(total) - (subtotal + Number(tax) + Number(service) + Number(discount))
+
+  const onBlur = () => {
+    callback({
+      tax, service, discount, total
+    })
+  };
+
 
   return (
     <Grid>
